@@ -14,6 +14,8 @@ const BLINK_GAZE_PROBABILITY = 0.3;
 const MIN_BLINK_GAZE_INTERVAL = 2_000;
 const OBJECT_ATTENTION_MIN = 1_000;
 const OBJECT_ATTENTION_MAX = 3_000;
+const MIN_GAZE_ACTIVITY = 0.5;
+const MAX_GAZE_ACTIVITY = 1.5;
 
 function chooseNextGaze(previousGaze) {
   const roll = Math.random();
@@ -61,16 +63,31 @@ export function useFaceAnimation({
   hasTrack,
   isTrackChanging,
   motionSpeed = 1,
+  animationTheme = {},
   leftIrisRef,
   rightIrisRef,
   sceneRef,
 }) {
   const faceRef = useRef(null);
-  const playbackRef = useRef({ isPlaying, hasTrack, isTrackChanging, motionSpeed });
+  const playbackRef = useRef({
+    isPlaying,
+    hasTrack,
+    isTrackChanging,
+    motionSpeed,
+    faceMovement: animationTheme.movement ?? 1,
+    gazeActivity: animationTheme.gazeActivity ?? 1,
+  });
 
   useEffect(() => {
-    playbackRef.current = { isPlaying, hasTrack, isTrackChanging, motionSpeed };
-  }, [isPlaying, hasTrack, isTrackChanging, motionSpeed]);
+    playbackRef.current = {
+      isPlaying,
+      hasTrack,
+      isTrackChanging,
+      motionSpeed,
+      faceMovement: animationTheme.movement ?? 1,
+      gazeActivity: animationTheme.gazeActivity ?? 1,
+    };
+  }, [animationTheme, hasTrack, isPlaying, isTrackChanging, motionSpeed]);
 
   useEffect(() => {
     const face = faceRef.current;
@@ -83,6 +100,8 @@ export function useFaceAnimation({
     let energy = getTargetEnergy(playbackRef.current);
     let motion = reducedMotion.matches ? 0.1 : 1;
     let speed = playbackRef.current.motionSpeed;
+    let faceMovement = playbackRef.current.faceMovement;
+    let gazeActivity = playbackRef.current.gazeActivity;
     let blinkAt = 0;
     let winkAt = 0;
     let openAt = 0;
@@ -98,6 +117,16 @@ export function useFaceAnimation({
     let lastBlinkAt = -Infinity;
     let objectAttentionUntil = 0;
     let objectWasVisible = false;
+
+    function getGazeInterval() {
+      const normalInterval = randomDelay(MIN_GAZE_INTERVAL, MAX_GAZE_INTERVAL);
+      const safeActivity = clamp(
+        gazeActivity,
+        MIN_GAZE_ACTIVITY,
+        MAX_GAZE_ACTIVITY,
+      );
+      return normalInterval / safeActivity;
+    }
 
     function setExpression(next) {
       if (expression === next) return;
@@ -134,6 +163,8 @@ export function useFaceAnimation({
       energy += (getTargetEnergy(playback) - energy) * smoothing;
       motion += ((reduced ? 0.1 : 1) - motion) * smoothing;
       speed += (playback.motionSpeed - speed) * smoothing;
+      faceMovement += (playback.faceMovement - faceMovement) * smoothing;
+      gazeActivity += (playback.gazeActivity - gazeActivity) * smoothing;
       phase += elapsed * (0.22 + energy * 0.32) * (reduced ? 0.5 : 1) * speed;
 
       if (pendingGaze && now >= pendingGaze.promoteAt) {
@@ -160,7 +191,7 @@ export function useFaceAnimation({
         const gaze = chooseNextGaze(previousGaze);
         previousGaze = gaze.type;
         setGazeTarget(gaze, now);
-        nextGazeAt = now + randomDelay(MIN_GAZE_INTERVAL, MAX_GAZE_INTERVAL);
+        nextGazeAt = now + getGazeInterval();
       }
 
       const gazeSmoothing = 1 - Math.exp(-GAZE_SMOOTHING_SPEED * elapsed);
@@ -172,9 +203,9 @@ export function useFaceAnimation({
 
       // Shared playback energy controls the movement; this is not audio/beat analysis.
       const pulse = (Math.sin(phase * 2.1) + 1) / 2;
-      const rotation = Math.sin(phase) * (0.2 + energy * 0.9) * motion;
-      const lift = -2 * energy * pulse * motion;
-      const scale = 1 + (0.001 + energy * 0.014) * pulse * motion;
+      const rotation = Math.sin(phase) * (0.2 + energy * 0.9) * motion * faceMovement;
+      const lift = -2 * energy * pulse * motion * faceMovement;
+      const scale = 1 + (0.001 + energy * 0.014) * pulse * motion * faceMovement;
       face.style.transform = `translateY(${lift}px) rotate(${rotation}deg) scale(${scale})`;
 
       if (expression !== "open" && (
@@ -216,7 +247,7 @@ export function useFaceAnimation({
       gazeY = 0;
       targetGazeX = 0;
       targetGazeY = 0;
-      nextGazeAt = performance.now() + randomDelay(500, 2_000);
+      nextGazeAt = performance.now() + getGazeInterval();
       previousGaze = "center";
       pendingGaze = null;
       objectAttentionUntil = 0;

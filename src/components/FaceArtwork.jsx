@@ -78,6 +78,7 @@ function FaceArtwork({
   hasTrack,
   isTrackChanging,
   motionSpeed,
+  animationTheme,
   sceneRef,
 }) {
   const leftIrisRef = useRef(null);
@@ -87,6 +88,7 @@ function FaceArtwork({
     hasTrack,
     isTrackChanging,
     motionSpeed,
+    animationTheme,
     leftIrisRef,
     rightIrisRef,
     sceneRef,

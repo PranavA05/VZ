@@ -20,7 +20,21 @@ export const DEFAULT_THEME = {
 
 // Small personal examples. IDs avoid collisions between similarly named artists.
 const ARTIST_THEMES = {
-  "4c4Ce4N4vJOs3Tzee020S4": { motionSpeed: 0.8 }, // Planet Funk
+  "4c4Ce4N4vJOs3Tzee020S4": {
+    motionSpeed: 0.82,
+    face: {
+      movement: 0.82,
+      gazeActivity: 0.8,
+    },
+    ring: {
+      intensity: 0.9,
+      sharpness: 0.9,
+    },
+    environment: {
+      particleSpeed: 0.8,
+      particleOpacity: 0.85,
+    },
+  }, // Planet Funk
 };
 const TRACK_THEMES = {
   "2YhdkdWE7MCHzaQ5Wn6dJy": { sun: true }, // Chase the Sun

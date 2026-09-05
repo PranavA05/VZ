@@ -15,3 +15,10 @@ test("preserves momentum instead of reducing motion to a linear interpolation", 
   assert.ok(next.position > 1);
   assert.ok(next.velocity > 0);
 });
+
+test("keeps the existing spring behavior when sharpness is omitted", () => {
+  assert.deepEqual(
+    stepSpring(0, 0, 1, 1 / 60),
+    stepSpring(0, 0, 1, 1 / 60, 1),
+  );
+});

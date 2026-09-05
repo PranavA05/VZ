@@ -101,6 +101,10 @@ function Visualizer({
     let energy = targetEnergyRef.current;
     const color = [...themeRef.current.accent];
     let motionSpeed = themeRef.current.motionSpeed;
+    let particleSpeed = themeRef.current.environment?.particleSpeed ?? 1;
+    let particleOpacity = themeRef.current.environment?.particleOpacity ?? 1;
+    let ringIntensity = themeRef.current.ring?.intensity ?? 1;
+    let ringSharpness = themeRef.current.ring?.sharpness ?? 1;
     let sunOpacity = 0;
 
     const bars = createInitialBars();
@@ -175,9 +179,12 @@ function Visualizer({
     }
 
     function updateParticles(deltaTime) {
+      const playbackMovement = 0.35 + energy * 0.65;
+      const movement = motionSpeed * particleSpeed * playbackMovement;
+
       for (const particle of particles) {
-        particle.y -= particle.speed * deltaTime;
-        particle.x += particle.drift * deltaTime;
+        particle.y -= particle.speed * movement * deltaTime;
+        particle.x += particle.drift * movement * deltaTime;
 
         if (particle.y < -particle.size * 2) {
           resetParticle(particle);
@@ -239,7 +246,8 @@ function Visualizer({
           (BASE_MAX_BAR_HEIGHT - BASE_MIN_BAR_HEIGHT) *
           energyAdjustedVariation *
           energy *
-          bar.response;
+          bar.response *
+          ringIntensity;
 
         const rawTargetHeight = BASE_MIN_BAR_HEIGHT + animatedRange;
         bar.targetHeight = Math.min(rawTargetHeight, BASE_MAX_BAR_HEIGHT);
@@ -267,7 +275,7 @@ function Visualizer({
       context.fillStyle = `rgb(${color.map(Math.round).join(" ")})`;
 
       for (const particle of particles) {
-        context.globalAlpha = particle.opacity;
+        context.globalAlpha = particle.opacity * particleOpacity;
         context.beginPath();
         context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         context.fill();
@@ -284,6 +292,7 @@ function Visualizer({
           bar.velocity,
           bar.targetHeight,
           deltaTime,
+          ringSharpness,
         );
         bar.height = spring.position;
         bar.velocity = spring.velocity;
@@ -394,6 +403,16 @@ function Visualizer({
         color[index] += (targetTheme.accent[index] - value) * themeSmoothing;
       });
       motionSpeed += (targetTheme.motionSpeed - motionSpeed) * themeSmoothing;
+      particleSpeed +=
+        ((targetTheme.environment?.particleSpeed ?? 1) - particleSpeed) *
+        themeSmoothing;
+      particleOpacity +=
+        ((targetTheme.environment?.particleOpacity ?? 1) - particleOpacity) *
+        themeSmoothing;
+      ringIntensity +=
+        ((targetTheme.ring?.intensity ?? 1) - ringIntensity) * themeSmoothing;
+      ringSharpness +=
+        ((targetTheme.ring?.sharpness ?? 1) - ringSharpness) * themeSmoothing;
       sunOpacity += (Number(targetTheme.sun) - sunOpacity) * themeSmoothing;
 
       // Energy scales both speed and amplitude. Paused and idle states keep a

@@ -36,25 +36,25 @@ test("grayscale and dark artwork still produce visible cover-derived palettes", 
   );
 });
 
-test("artist and track overrides preserve the artwork color and default fields", () => {
+test("artist and track overrides preserve artwork color and merge personality fields", () => {
   const palette = [[40, 180, 210], [210, 70, 120]];
   const track = { id: "59NiB53LKACMEXxcynTdwO", artistIds: ["4c4Ce4N4vJOs3Tzee020S4"] };
   assert.deepEqual(resolveTheme(track, palette), {
     accent: palette[0],
     gradientStart: palette[0],
     gradientEnd: palette[1],
-    motionSpeed: 0.8,
+    motionSpeed: 0.82,
     face: {
-      movement: 1,
-      gazeActivity: 1,
+      movement: 0.82,
+      gazeActivity: 0.8,
     },
     ring: {
-      intensity: 1,
-      sharpness: 1,
+      intensity: 0.9,
+      sharpness: 0.9,
     },
     environment: {
-      particleSpeed: 1,
-      particleOpacity: 1,
+      particleSpeed: 0.8,
+      particleOpacity: 0.85,
     },
     sun: true,
   });

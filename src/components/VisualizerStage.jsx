@@ -22,6 +22,7 @@ function VisualizerStage({ playback, receivedAt, isTrackChanging, theme }) {
         hasTrack={Boolean(playback.track)}
         isTrackChanging={isTrackChanging}
         motionSpeed={theme.motionSpeed}
+        animationTheme={theme.face}
         sceneRef={sceneRef}
       />
     </div>
