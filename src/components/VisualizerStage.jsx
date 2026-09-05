@@ -4,7 +4,7 @@ import CircularProgress from "./CircularProgress";
 import Visualizer from "./Visualizer";
 
 function VisualizerStage({ playback, receivedAt, isTrackChanging, theme }) {
-  const sceneRef = useRef({ specialObject: null });
+  const sceneRef = useRef({ specialObject: null, eventObject: null });
 
   return (
     <div className="visualizer-stage">

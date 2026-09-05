@@ -50,6 +50,10 @@ const PARTICLE_MIN_OPACITY = 0.1;
 const PARTICLE_MAX_OPACITY = 0.45;
 const PARTICLE_TYPE_TRANSITION_DURATION = 0.5;
 const PARTICLE_TYPES = new Set(["dust", "stars", "sparks"]);
+const SHOOTING_STAR_MIN_INTERVAL = 10_000;
+const SHOOTING_STAR_MAX_INTERVAL = 25_000;
+const SHOOTING_STAR_MIN_DURATION = 0.8;
+const SHOOTING_STAR_MAX_DURATION = 1.5;
 
 function Visualizer({
   isPlaying = false,
@@ -112,6 +116,8 @@ function Visualizer({
     );
     let targetParticleType = currentParticleType;
     let particleTypeTransition = 1;
+    let activeEvent = null;
+    let nextEventAt = null;
     let sunOpacity = 0;
 
     const bars = createInitialBars();
@@ -179,8 +185,8 @@ function Visualizer({
 
     function resetParticle(particle) {
       particle.x = randomBetween(0, geometry.width);
-      particle.y = geometry.height + randomBetween(0, particle.size * 2);
       particle.size = randomBetween(PARTICLE_MIN_SIZE, PARTICLE_MAX_SIZE);
+      particle.y = geometry.height + randomBetween(0, particle.size * 2);
       particle.speed = randomBetween(PARTICLE_MIN_SPEED, PARTICLE_MAX_SPEED);
       particle.drift = randomBetween(PARTICLE_MIN_DRIFT, PARTICLE_MAX_DRIFT);
       particle.opacity = randomBetween(
@@ -331,6 +337,105 @@ function Visualizer({
       context.moveTo(particle.x, particle.y);
       context.lineTo(particle.x - tailX, particle.y - tailY);
       context.stroke();
+    }
+
+    function spawnShootingStar() {
+      const fromLeft = Math.random() < 0.5;
+      const direction = fromLeft ? 1 : -1;
+      activeEvent = {
+        type: "shooting-star",
+        x: fromLeft ? -12 : geometry.width + 12,
+        y: randomBetween(geometry.height * 0.08, geometry.height * 0.3),
+        velocityX: direction * randomBetween(150, 240),
+        velocityY: randomBetween(90, 160),
+        age: 0,
+        duration: randomBetween(
+          SHOOTING_STAR_MIN_DURATION,
+          SHOOTING_STAR_MAX_DURATION,
+        ),
+        opacity: 1,
+      };
+    }
+
+    function updateSceneEvent(deltaTime, currentTime) {
+      if (reducedMotion.matches) {
+        activeEvent = null;
+        nextEventAt = null;
+        if (scene) scene.eventObject = null;
+        return;
+      }
+
+      if (!activeEvent) {
+        if (nextEventAt === null) {
+          nextEventAt = currentTime + randomBetween(
+            SHOOTING_STAR_MIN_INTERVAL,
+            SHOOTING_STAR_MAX_INTERVAL,
+          );
+        }
+
+        if (currentTime >= nextEventAt) {
+          spawnShootingStar();
+        }
+      }
+
+      if (!activeEvent) {
+        if (scene) scene.eventObject = null;
+        return;
+      }
+
+      activeEvent.age += deltaTime;
+      activeEvent.x += activeEvent.velocityX * deltaTime;
+      activeEvent.y += activeEvent.velocityY * deltaTime;
+
+      if (activeEvent.age >= activeEvent.duration) {
+        activeEvent = null;
+        nextEventAt = currentTime + randomBetween(
+          SHOOTING_STAR_MIN_INTERVAL,
+          SHOOTING_STAR_MAX_INTERVAL,
+        );
+        if (scene) scene.eventObject = null;
+        return;
+      }
+
+      const fadeStart = activeEvent.duration * 0.65;
+      activeEvent.opacity = activeEvent.age <= fadeStart
+        ? 1
+        : 1 - (activeEvent.age - fadeStart) / (activeEvent.duration - fadeStart);
+      if (scene) {
+        scene.eventObject = {
+          type: activeEvent.type,
+          visible: true,
+          x: activeEvent.x / geometry.width,
+          y: activeEvent.y / geometry.height,
+        };
+      }
+    }
+
+    function drawSceneEvent() {
+      if (!activeEvent) return;
+
+      const velocityLength = Math.hypot(
+        activeEvent.velocityX,
+        activeEvent.velocityY,
+      ) || 1;
+      const tailLength = 20;
+      const tailX = (activeEvent.velocityX / velocityLength) * tailLength;
+      const tailY = (activeEvent.velocityY / velocityLength) * tailLength;
+
+      context.save();
+      context.strokeStyle = `rgb(${color.map(Math.round).join(" ")})`;
+      context.fillStyle = context.strokeStyle;
+      context.globalAlpha = activeEvent.opacity * 0.8;
+      context.lineWidth = 1.2;
+      context.beginPath();
+      context.moveTo(activeEvent.x, activeEvent.y);
+      context.lineTo(activeEvent.x - tailX, activeEvent.y - tailY);
+      context.stroke();
+      context.globalAlpha = activeEvent.opacity;
+      context.beginPath();
+      context.arc(activeEvent.x, activeEvent.y, 2, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
     }
 
     function updateAndDrawBars(deltaTime) {
@@ -495,9 +600,11 @@ function Visualizer({
       updateBarVariations(deltaTime);
       updateBarTargets();
       updateParticles(deltaTime);
+      updateSceneEvent(deltaTime, currentTime);
 
       prepareCanvas();
       drawParticles();
+      drawSceneEvent();
       drawSun();
       updateAndDrawBars(deltaTime);
 
@@ -507,6 +614,8 @@ function Visualizer({
     function handleVisibilityChange() {
       cancelAnimationFrame(animationFrameId);
       previousTime = null;
+      activeEvent = null;
+      nextEventAt = null;
 
       if (!document.hidden) {
         animationFrameId = requestAnimationFrame(animate);
@@ -528,7 +637,10 @@ function Visualizer({
       resizeObserver.disconnect();
       window.removeEventListener("resize", resizeCanvas);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (scene) scene.specialObject = null;
+      if (scene) {
+        scene.specialObject = null;
+        scene.eventObject = null;
+      }
     };
   }, [sceneRef]);
 

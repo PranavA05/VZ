@@ -16,6 +16,8 @@ const OBJECT_ATTENTION_MIN = 1_000;
 const OBJECT_ATTENTION_MAX = 3_000;
 const MIN_GAZE_ACTIVITY = 0.5;
 const MAX_GAZE_ACTIVITY = 1.5;
+const EVENT_ATTENTION_PROBABILITY = 0.5;
+const EVENT_ATTENTION_DURATION = 1_000;
 
 function chooseNextGaze(previousGaze) {
   const roll = Math.random();
@@ -117,6 +119,9 @@ export function useFaceAnimation({
     let lastBlinkAt = -Infinity;
     let objectAttentionUntil = 0;
     let objectWasVisible = false;
+    let eventAttentionUntil = 0;
+    let eventWasVisible = false;
+    let eventWasNoticed = false;
 
     function getGazeInterval() {
       const normalInterval = randomDelay(MIN_GAZE_INTERVAL, MAX_GAZE_INTERVAL);
@@ -185,9 +190,35 @@ export function useFaceAnimation({
       }
 
       const objectAttentionActive = specialObject?.visible && now < objectAttentionUntil;
+      const eventObject = sceneRef?.current?.eventObject;
+      if (eventObject?.visible && !eventWasVisible) {
+        eventWasVisible = true;
+        eventWasNoticed = !objectAttentionActive
+          && Math.random() < EVENT_ATTENTION_PROBABILITY;
+        eventAttentionUntil = eventWasNoticed
+          ? now + EVENT_ATTENTION_DURATION
+          : 0;
+        if (eventWasNoticed) {
+          setGazeTarget(mapObjectToGaze(eventObject), now);
+        }
+      } else if (!eventObject?.visible && eventWasVisible) {
+        eventWasVisible = false;
+        if (eventWasNoticed) {
+          targetGazeX = 0;
+          targetGazeY = 0;
+        }
+        eventWasNoticed = false;
+        eventAttentionUntil = 0;
+      }
+
+      const eventAttentionActive = eventObject?.visible
+        && eventWasNoticed
+        && now < eventAttentionUntil;
       if (objectAttentionActive && !pendingGaze) {
         setGazeTarget(mapObjectToGaze(specialObject), now, false);
-      } else if (!reduced && !objectAttentionActive && now >= nextGazeAt) {
+      } else if (eventAttentionActive && !pendingGaze) {
+        setGazeTarget(mapObjectToGaze(eventObject), now, false);
+      } else if (!reduced && !objectAttentionActive && !eventAttentionActive && now >= nextGazeAt) {
         const gaze = chooseNextGaze(previousGaze);
         previousGaze = gaze.type;
         setGazeTarget(gaze, now);
@@ -252,6 +283,9 @@ export function useFaceAnimation({
       pendingGaze = null;
       objectAttentionUntil = 0;
       objectWasVisible = false;
+      eventAttentionUntil = 0;
+      eventWasVisible = false;
+      eventWasNoticed = false;
       leftIris?.removeAttribute("transform");
       rightIris?.removeAttribute("transform");
       if (!document.hidden) {
