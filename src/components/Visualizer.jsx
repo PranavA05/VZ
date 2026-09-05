@@ -43,6 +43,7 @@ function Visualizer({
   trackId = null,
   isTrackChanging = false,
   theme = DEFAULT_THEME,
+  sceneRef,
 }) {
   const canvasRef = useRef(null);
   const themeRef = useRef(theme);
@@ -73,6 +74,7 @@ function Visualizer({
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
     if (!context) return undefined;
+    const scene = sceneRef?.current;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const angleStep = (Math.PI * 2) / NUMBER_OF_BARS;
     let geometry = calculateVisualizerGeometry(CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -240,11 +242,22 @@ function Visualizer({
     }
 
     function drawSun() {
-      if (sunOpacity < 0.005) return;
+      if (sunOpacity < 0.005) {
+        if (scene) scene.specialObject = null;
+        return;
+      }
       const radius = geometry.innerRadius * 0.1;
       const angle = -Math.PI * 0.75 + (reducedMotion.matches ? 0 : Math.sin(phase * 0.15) * 0.06);
       const x = geometry.centerX + Math.cos(angle) * geometry.innerRadius * 1.32;
       const y = geometry.centerY + Math.sin(angle) * geometry.innerRadius * 1.32;
+      if (scene) {
+        scene.specialObject = {
+          type: "sun",
+          visible: true,
+          x: x / geometry.width,
+          y: y / geometry.height,
+        };
+      }
       context.save();
       context.globalAlpha = sunOpacity * 0.5;
       context.lineWidth = 1;
@@ -346,8 +359,9 @@ function Visualizer({
       resizeObserver.disconnect();
       window.removeEventListener("resize", resizeCanvas);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (scene) scene.specialObject = null;
     };
-  }, []);
+  }, [sceneRef]);
 
   return (
     <canvas

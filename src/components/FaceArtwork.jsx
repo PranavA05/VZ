@@ -1,8 +1,8 @@
-import { useId } from "react";
+import { useId, useRef } from "react";
 import faceModelUrl from "../assets/face-model.png";
 import { useFaceAnimation } from "../hooks/useFaceAnimation.js";
 
-function EyeArtwork({ side, artworkUrl }) {
+function EyeArtwork({ side, artworkUrl, irisRef }) {
   const id = useId();
   const socket = "M0 10 C20 15 27 0 52 2 C75 3 89 16 100 32 C78 32 66 42 39 39 C20 37 9 23 0 10Z";
   const irisX = side === "left" ? 53 : 47;
@@ -43,23 +43,25 @@ function EyeArtwork({ side, artworkUrl }) {
       </defs>
       <g clipPath={`url(#${id}-socket)`}>
         <path d="M0 0H100V42H0Z" fill={`url(#${id}-sclera)`} />
-        <circle cx={irisX} cy="21" r="19" fill="#555f52" />
-        {artworkUrl && (
-          <image
-            key={artworkUrl}
-            className="face-artwork__album"
-            href={artworkUrl}
-            x={irisX - 19}
-            y="2"
-            width="38"
-            height="38"
-            preserveAspectRatio="xMidYMid slice"
-            clipPath={`url(#${id}-iris)`}
-          />
-        )}
-        <circle cx={irisX} cy="21" r="19" fill={`url(#${id}-iris-shade)`} />
-        <circle cx={irisX} cy="21" r="6.5" fill="#090b0a" />
-        <ellipse cx={irisX - 6} cy="12" rx="3" ry="1.8" fill="#d8dbd2" opacity="0.45" />
+        <g ref={irisRef} className="iris-group">
+          <circle cx={irisX} cy="21" r="19" fill="#555f52" />
+          {artworkUrl && (
+            <image
+              key={artworkUrl}
+              className="face-artwork__album"
+              href={artworkUrl}
+              x={irisX - 19}
+              y="2"
+              width="38"
+              height="38"
+              preserveAspectRatio="xMidYMid slice"
+              clipPath={`url(#${id}-iris)`}
+            />
+          )}
+          <circle cx={irisX} cy="21" r="19" fill={`url(#${id}-iris-shade)`} />
+          <circle cx={irisX} cy="21" r="6.5" fill="#090b0a" />
+          <ellipse cx={irisX - 6} cy="12" rx="3" ry="1.8" fill="#d8dbd2" opacity="0.45" />
+        </g>
         <path d="M0 0H100V42H0Z" fill={`url(#${id}-shadow)`} />
         <g fill={`url(#${id}-lid)`} stroke="#343632" strokeWidth="0.6">
           <path className="face-artwork__lid face-artwork__lid--upper" d="M-4 -48H104V-4Q50 -14 -4 -4Z" />
@@ -70,8 +72,25 @@ function EyeArtwork({ side, artworkUrl }) {
   );
 }
 
-function FaceArtwork({ artworkUrl, isPlaying, hasTrack, isTrackChanging, motionSpeed }) {
-  const faceRef = useFaceAnimation({ isPlaying, hasTrack, isTrackChanging, motionSpeed });
+function FaceArtwork({
+  artworkUrl,
+  isPlaying,
+  hasTrack,
+  isTrackChanging,
+  motionSpeed,
+  sceneRef,
+}) {
+  const leftIrisRef = useRef(null);
+  const rightIrisRef = useRef(null);
+  const faceRef = useFaceAnimation({
+    isPlaying,
+    hasTrack,
+    isTrackChanging,
+    motionSpeed,
+    leftIrisRef,
+    rightIrisRef,
+    sceneRef,
+  });
   return (
     <div className="face-artwork" aria-hidden="true">
       <div className="face-artwork__motion" ref={faceRef}>
@@ -81,8 +100,8 @@ function FaceArtwork({ artworkUrl, isPlaying, hasTrack, isTrackChanging, motionS
           alt=""
           draggable={false}
         />
-        <EyeArtwork side="left" artworkUrl={artworkUrl} />
-        <EyeArtwork side="right" artworkUrl={artworkUrl} />
+        <EyeArtwork side="left" artworkUrl={artworkUrl} irisRef={leftIrisRef} />
+        <EyeArtwork side="right" artworkUrl={artworkUrl} irisRef={rightIrisRef} />
       </div>
     </div>
   );

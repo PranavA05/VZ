@@ -1,8 +1,11 @@
+import { useRef } from "react";
 import FaceArtwork from "./FaceArtwork";
 import CircularProgress from "./CircularProgress";
 import Visualizer from "./Visualizer";
 
 function VisualizerStage({ playback, receivedAt, isTrackChanging, theme }) {
+  const sceneRef = useRef({ specialObject: null });
+
   return (
     <div className="visualizer-stage">
       <Visualizer
@@ -10,6 +13,7 @@ function VisualizerStage({ playback, receivedAt, isTrackChanging, theme }) {
         trackId={playback.track?.id ?? null}
         isTrackChanging={isTrackChanging}
         theme={theme}
+        sceneRef={sceneRef}
       />
       <CircularProgress playback={playback} receivedAt={receivedAt} />
       <FaceArtwork
@@ -18,6 +22,7 @@ function VisualizerStage({ playback, receivedAt, isTrackChanging, theme }) {
         hasTrack={Boolean(playback.track)}
         isTrackChanging={isTrackChanging}
         motionSpeed={theme.motionSpeed}
+        sceneRef={sceneRef}
       />
     </div>
   );
