@@ -12,6 +12,7 @@ export const DEFAULT_THEME = {
     sharpness: 1,
   },
   environment: {
+    particleType: "dust",
     particleSpeed: 1,
     particleOpacity: 1,
   },
@@ -31,6 +32,7 @@ const ARTIST_THEMES = {
       sharpness: 0.9,
     },
     environment: {
+      particleType: "stars",
       particleSpeed: 0.8,
       particleOpacity: 0.85,
     },
@@ -38,7 +40,10 @@ const ARTIST_THEMES = {
 };
 const TRACK_THEMES = {
   "2YhdkdWE7MCHzaQ5Wn6dJy": { sun: true }, // Chase the Sun
-  "59NiB53LKACMEXxcynTdwO": { sun: true }, // Non Zero Sumness Plus One edition
+  "59NiB53LKACMEXxcynTdwO": {
+    sun: true,
+    environment: { particleType: "sparks" },
+  }, // Non Zero Sumness Plus One edition
 };
 
 export function resolveTheme(track, artworkPalette) {

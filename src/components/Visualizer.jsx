@@ -48,6 +48,8 @@ const PARTICLE_MIN_DRIFT = -2;
 const PARTICLE_MAX_DRIFT = 2;
 const PARTICLE_MIN_OPACITY = 0.1;
 const PARTICLE_MAX_OPACITY = 0.45;
+const PARTICLE_TYPE_TRANSITION_DURATION = 0.5;
+const PARTICLE_TYPES = new Set(["dust", "stars", "sparks"]);
 
 function Visualizer({
   isPlaying = false,
@@ -105,6 +107,11 @@ function Visualizer({
     let particleOpacity = themeRef.current.environment?.particleOpacity ?? 1;
     let ringIntensity = themeRef.current.ring?.intensity ?? 1;
     let ringSharpness = themeRef.current.ring?.sharpness ?? 1;
+    let currentParticleType = getParticleType(
+      themeRef.current.environment?.particleType,
+    );
+    let targetParticleType = currentParticleType;
+    let particleTypeTransition = 1;
     let sunOpacity = 0;
 
     const bars = createInitialBars();
@@ -115,6 +122,10 @@ function Visualizer({
 
     function randomBetween(minimum, maximum) {
       return Math.random() * (maximum - minimum) + minimum;
+    }
+
+    function getParticleType(type) {
+      return PARTICLE_TYPES.has(type) ? type : "dust";
     }
 
     function createInitialBars() {
@@ -273,15 +284,53 @@ function Visualizer({
     function drawParticles() {
       context.save();
       context.fillStyle = `rgb(${color.map(Math.round).join(" ")})`;
+      context.strokeStyle = context.fillStyle;
+      const transitionOpacity = particleTypeTransition < 0.5
+        ? 1 - particleTypeTransition * 2
+        : (particleTypeTransition - 0.5) * 2;
 
       for (const particle of particles) {
-        context.globalAlpha = particle.opacity * particleOpacity;
-        context.beginPath();
-        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        context.fill();
+        context.globalAlpha =
+          particle.opacity * particleOpacity * transitionOpacity;
+        if (currentParticleType === "stars") {
+          drawParticleStar(particle);
+        } else if (currentParticleType === "sparks") {
+          drawParticleSpark(particle);
+        } else {
+          drawParticleDust(particle);
+        }
       }
 
       context.restore();
+    }
+
+    function drawParticleDust(particle) {
+      context.beginPath();
+      context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    function drawParticleStar(particle) {
+      const arm = Math.max(particle.size * 1.4, 1);
+      context.lineWidth = 0.7;
+      context.beginPath();
+      context.moveTo(particle.x - arm, particle.y);
+      context.lineTo(particle.x + arm, particle.y);
+      context.moveTo(particle.x, particle.y - arm);
+      context.lineTo(particle.x, particle.y + arm);
+      context.stroke();
+    }
+
+    function drawParticleSpark(particle) {
+      const velocityLength = Math.hypot(particle.drift, particle.speed) || 1;
+      const tailLength = particle.size * 3;
+      const tailX = (particle.drift / velocityLength) * tailLength;
+      const tailY = (-particle.speed / velocityLength) * tailLength;
+      context.lineWidth = Math.max(particle.size * 0.65, 0.6);
+      context.beginPath();
+      context.moveTo(particle.x, particle.y);
+      context.lineTo(particle.x - tailX, particle.y - tailY);
+      context.stroke();
     }
 
     function updateAndDrawBars(deltaTime) {
@@ -413,6 +462,30 @@ function Visualizer({
         ((targetTheme.ring?.intensity ?? 1) - ringIntensity) * themeSmoothing;
       ringSharpness +=
         ((targetTheme.ring?.sharpness ?? 1) - ringSharpness) * themeSmoothing;
+      targetParticleType = getParticleType(
+        targetTheme.environment?.particleType,
+      );
+      if (targetParticleType !== currentParticleType) {
+        if (particleTypeTransition >= 1) {
+          particleTypeTransition = 0;
+        } else if (particleTypeTransition < 0.5) {
+          particleTypeTransition = Math.min(
+            particleTypeTransition + deltaTime / PARTICLE_TYPE_TRANSITION_DURATION,
+            0.5,
+          );
+        } else {
+          currentParticleType = targetParticleType;
+          particleTypeTransition = Math.min(
+            particleTypeTransition + deltaTime / PARTICLE_TYPE_TRANSITION_DURATION,
+            1,
+          );
+        }
+      } else if (particleTypeTransition < 1) {
+        particleTypeTransition = Math.min(
+          particleTypeTransition + deltaTime / PARTICLE_TYPE_TRANSITION_DURATION,
+          1,
+        );
+      }
       sunOpacity += (Number(targetTheme.sun) - sunOpacity) * themeSmoothing;
 
       // Energy scales both speed and amplitude. Paused and idle states keep a

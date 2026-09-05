@@ -53,6 +53,7 @@ test("artist and track overrides preserve artwork color and merge personality fi
       sharpness: 0.9,
     },
     environment: {
+      particleType: "sparks",
       particleSpeed: 0.8,
       particleOpacity: 0.85,
     },
@@ -62,4 +63,17 @@ test("artist and track overrides preserve artwork color and merge personality fi
   assert.equal(resolveTheme({ ...track, artistIds: [] }, palette).motionSpeed, 1);
   assert.equal(resolveTheme(null, palette), DEFAULT_THEME);
   assert.deepEqual(DEFAULT_THEME.accent, [215, 154, 98]);
+});
+
+test("partial track environment overrides preserve artist environment defaults", () => {
+  const theme = resolveTheme({
+    id: "59NiB53LKACMEXxcynTdwO",
+    artistIds: ["4c4Ce4N4vJOs3Tzee020S4"],
+  });
+
+  assert.deepEqual(theme.environment, {
+    particleType: "sparks",
+    particleSpeed: 0.8,
+    particleOpacity: 0.85,
+  });
 });
