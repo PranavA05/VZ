@@ -161,7 +161,36 @@ function Visualizer({
     }
 
     const particles = createInitialParticles();
-    void particles;
+
+    function resetParticle(particle) {
+      particle.x = randomBetween(0, geometry.width);
+      particle.y = geometry.height + randomBetween(0, particle.size * 2);
+      particle.size = randomBetween(PARTICLE_MIN_SIZE, PARTICLE_MAX_SIZE);
+      particle.speed = randomBetween(PARTICLE_MIN_SPEED, PARTICLE_MAX_SPEED);
+      particle.drift = randomBetween(PARTICLE_MIN_DRIFT, PARTICLE_MAX_DRIFT);
+      particle.opacity = randomBetween(
+        PARTICLE_MIN_OPACITY,
+        PARTICLE_MAX_OPACITY,
+      );
+    }
+
+    function updateParticles(deltaTime) {
+      for (const particle of particles) {
+        particle.y -= particle.speed * deltaTime;
+        particle.x += particle.drift * deltaTime;
+
+        if (particle.y < -particle.size * 2) {
+          resetParticle(particle);
+          continue;
+        }
+
+        if (particle.x < 0) {
+          particle.x = geometry.width;
+        } else if (particle.x > geometry.width) {
+          particle.x = 0;
+        }
+      }
+    }
 
     // -------------------------------------------------------------------------
     // Bar variation and target generation
@@ -231,6 +260,20 @@ function Visualizer({
       context.strokeStyle = `rgb(${color.map(Math.round).join(" ")})`;
       context.lineWidth = geometry.barLineWidth;
       context.lineCap = "round";
+    }
+
+    function drawParticles() {
+      context.save();
+      context.fillStyle = `rgb(${color.map(Math.round).join(" ")})`;
+
+      for (const particle of particles) {
+        context.globalAlpha = particle.opacity;
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      context.restore();
     }
 
     function updateAndDrawBars(deltaTime) {
@@ -359,8 +402,10 @@ function Visualizer({
 
       updateBarVariations(deltaTime);
       updateBarTargets();
+      updateParticles(deltaTime);
 
       prepareCanvas();
+      drawParticles();
       drawSun();
       updateAndDrawBars(deltaTime);
 
