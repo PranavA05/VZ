@@ -44,6 +44,18 @@ test("artist and track overrides preserve the artwork color and default fields",
     gradientStart: palette[0],
     gradientEnd: palette[1],
     motionSpeed: 0.8,
+    face: {
+      movement: 1,
+      gazeActivity: 1,
+    },
+    ring: {
+      intensity: 1,
+      sharpness: 1,
+    },
+    environment: {
+      particleSpeed: 1,
+      particleOpacity: 1,
+    },
     sun: true,
   });
   assert.equal(resolveTheme({ ...track, id: "other" }, palette).sun, false);
