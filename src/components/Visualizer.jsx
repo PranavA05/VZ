@@ -38,6 +38,17 @@ const MIN_VARIATION_INTERVAL = 0.6;
 const VARIATION_INTERVAL_RANGE = 0.8;
 const VARIATION_SMOOTHING_SPEED = 2;
 
+// Ambient particles are intentionally sparse background detail.
+const PARTICLE_COUNT = 24;
+const PARTICLE_MIN_SIZE = 0.8;
+const PARTICLE_MAX_SIZE = 2.2;
+const PARTICLE_MIN_SPEED = 3;
+const PARTICLE_MAX_SPEED = 8;
+const PARTICLE_MIN_DRIFT = -2;
+const PARTICLE_MAX_DRIFT = 2;
+const PARTICLE_MIN_OPACITY = 0.1;
+const PARTICLE_MAX_OPACITY = 0.45;
+
 function Visualizer({
   isPlaying = false,
   trackId = null,
@@ -70,6 +81,7 @@ function Visualizer({
     // -------------------------------------------------------------------------
     // Canvas setup and derived geometry
     // -------------------------------------------------------------------------
+
 
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
@@ -130,6 +142,26 @@ function Visualizer({
 
       return initialBars;
     }
+
+    function createInitialParticles() {
+      const initialParticles = [];
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        initialParticles.push({
+          x: randomBetween(0, geometry.width),
+          y: randomBetween(0, geometry.height),
+          size: randomBetween(PARTICLE_MIN_SIZE, PARTICLE_MAX_SIZE),
+          speed: randomBetween(PARTICLE_MIN_SPEED, PARTICLE_MAX_SPEED),
+          drift: randomBetween(PARTICLE_MIN_DRIFT, PARTICLE_MAX_DRIFT),
+          opacity: randomBetween(PARTICLE_MIN_OPACITY, PARTICLE_MAX_OPACITY),
+        });
+      }
+
+      return initialParticles;
+    }
+
+    const particles = createInitialParticles();
+    void particles;
 
     // -------------------------------------------------------------------------
     // Bar variation and target generation
